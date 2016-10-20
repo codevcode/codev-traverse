@@ -1,10 +1,6 @@
 bin
-lib
-build
 node_modules
 npm-debug.log
-
-.env
 
 # Sublime Text file
 *.sublime-project

@@ -2,11 +2,12 @@
   "name": "codev-traverse",
   "version": "1.0.0",
   "description": "To traverse schema with middlewares",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "test": "env NODE_PATH=./src mocha './tests/**/*spec.js' --opts ./tests/mocha-frontend.opts",
     "mocha": "env NODE_PATH=./src mocha './tests/**/*spec.js' --opts ./tests/mocha-frontend.opts --watch --bail",
-    "linter": "eslint index.js tests/**/*spec.js --fix"
+    "linter": "eslint index.js tests/**/*spec.js --fix",
+    "build": "babel src --minified --sourceMap -d lib"
   },
   "repository": {
     "type": "git",
@@ -19,6 +20,7 @@
   },
   "homepage": "https://github.com/codevcode/codev-traverse#readme",
   "devDependencies": {
+    "babel-cli": "^6.16.0",
     "babel-core": "^6.17.0",
     "babel-eslint": "^7.0.0",
     "babel-polyfill": "^6.16.0",
@@ -29,9 +31,10 @@
     "eslint": "^3.8.1",
     "eslint-config-airbnb": "^12.0.0",
     "eslint-plugin-babel": "^3.3.0",
-    "eslint-plugin-import": "^2.0.1",
+    "eslint-plugin-import": "^1.16.0",
     "eslint-plugin-jsx-a11y": "^2.2.3",
     "eslint-plugin-react": "^6.4.1",
     "mocha": "^3.1.2"
-  }
+  },
+  "dependencies": {}
 }

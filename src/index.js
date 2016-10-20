@@ -3,13 +3,6 @@ const traverse = schema => middleware => ctx => async (value) => {
     return async (input) => {
       const output = Array.isArray(schemas) ? [] : {}
 
-      // let fallback = null
-      // for (const key of keys) {
-      //   const sch = schemas[key] || fallback
-      //   fallback = sch
-      //   output[key] = await traverse(sch)(middleware)(ctx)(input[key])
-      // }
-
       let fallback = null
       await Promise.all(keys.map(async (key) => {
         const sch = schemas[key] || fallback
@@ -36,9 +29,7 @@ const traverse = schema => middleware => ctx => async (value) => {
 
 const compose = middlewares => schema => ctx => next => middlewares
     .map((m, i, a) => a[a.length - i - 1]) // reverse
-    .reduce(
-      (chainedNext, middleware) => middleware(schema)(ctx)(chainedNext), next
-    )
+    .reduce((nextHandler, mid) => mid(schema)(ctx)(nextHandler), next)
 
 
 export default traverse
