@@ -2,9 +2,59 @@ import { traverse, compose } from '../'
 
 const { strictEqual: is, deepEqual: deep } = assert
 
-describe('traverseValue', function () {
+describe('traverse', function () {
   it('is a function', function () {
     is(typeof traverse, 'function')
+  })
+  it('to get a empty object', function () {
+    const schema = {
+      contents: {
+        age: { },
+        name: { contents: { first: { }, last: { } } },
+        phones: { contents: [{ }] },
+      },
+    }
+
+    const middleware = () => () => next => async value => await next(value)
+
+    return traverse(schema)(middleware)()().then((val) => {
+      deep(
+        val,
+        {
+          age: undefined,
+          name: { first: undefined, last: undefined },
+          phones: [],
+        }
+      )
+    })
+  })
+  it('to fill some value', function () {
+    const schema = {
+      contents: {
+        age: { autofill: 10 },
+        name: { contents: { first: { autofill: 'Charles' }, last: { } } },
+        phones: { contents: [{ }] },
+      },
+    }
+
+    const middleware = ({ autofill }) => () => next => async (value) => {
+      const children = await next(value)
+
+      if (autofill && !children) return await autofill
+
+      return children
+    }
+
+    return traverse(schema)(middleware)()().then((val) => {
+      deep(
+        val,
+        {
+          age: 10,
+          name: { first: 'Charles', last: undefined },
+          phones: [],
+        }
+      )
+    })
   })
 
   it('receive context, resolve revised value', function () {
@@ -21,54 +71,6 @@ describe('traverseValue', function () {
 
     return traverse(schema)(middleware)()(value).then((val) => {
       deep(val, { name: 'Charles', age: 33 })
-    })
-  })
-  it('empty', function () {
-    const value = { name: 'Charles', age: 33 }
-    const schema = {
-      type: 'Object',
-      contents: {
-        name: { type: 'String' },
-        age: {
-          type: 'Number',
-        },
-      },
-    }
-    const middleware = ({ type }) => () => next => async () => {
-      let init
-      if (type === 'Object') {
-        init = { }
-      } else {
-        init = ''
-      }
-
-      return await next(init)
-    }
-
-    return traverse(schema)(middleware)()(value).then((val) => {
-      deep(val, { name: '', age: '' })
-    })
-  })
-  it('autofill', function () {
-    const schema = {
-      type: 'Object',
-      contents: {
-        name: { type: 'String' },
-        age: {
-          type: 'Number',
-          autofill: 10,
-        },
-      },
-    }
-    const autofillMiddleware = ({ autofill }) => () => next => async (val) => {
-      if (!autofill) return await next(val)
-
-      await next(val)
-      return autofill
-    }
-
-    return traverse(schema)(autofillMiddleware)()().then((val) => {
-      deep(val, { age: 10, name: undefined })
     })
   })
   it('compose', function () {

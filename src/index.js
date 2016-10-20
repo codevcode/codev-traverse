@@ -17,7 +17,7 @@ const traverse = schema => middleware => ctx => (value) => {
   const { contents } = schema
   let next
   if (Array.isArray(contents)) {
-    next = makeNext(value.map((v, i) => i), contents)
+    next = makeNext((value || []).map((v, i) => i), contents)
   } else if (typeof contents === 'object') {
     next = makeNext(Object.keys(contents), contents)
   } else {
