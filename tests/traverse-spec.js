@@ -49,6 +49,28 @@ describe('traverseValue', function () {
       deep(val, { name: '', age: '' })
     })
   })
+  it('autofill', function () {
+    const schema = {
+      type: 'Object',
+      contents: {
+        name: { type: 'String' },
+        age: {
+          type: 'Number',
+          autofill: 10,
+        },
+      },
+    }
+    const autofillMiddleware = ({ autofill }) => () => next => async (val) => {
+      if (!autofill) return await next(val)
+
+      await next(val)
+      return autofill
+    }
+
+    return traverse(schema)(autofillMiddleware)()().then((val) => {
+      deep(val, { age: 10, name: undefined })
+    })
+  })
   it('compose', function () {
     const value = { name: 'Charles', age: 33 }
     const schema = {

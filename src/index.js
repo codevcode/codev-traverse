@@ -5,7 +5,7 @@ const traverse = schema => middleware => ctx => (value) => {
       return Promise.all(keys.map((key) => {
         const sch = schemas[key] || fallback
         fallback = sch
-        return traverse(sch)(middleware)(ctx)(input[key])
+        return traverse(sch)(middleware)(ctx)(input && input[key])
       })).then((values) => {
         const output = Array.isArray(schemas) ? [] : {}
         values.forEach((v, i) => (output[keys[i]] = v))
