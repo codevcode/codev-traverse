@@ -10,7 +10,6 @@ describe.only('traverseValue', function () {
   it('receive context, resolve revised value', function () {
     const value = { name: 'Charles', age: 33 }
     const schema = {
-      type: 'Object',
       contents: {
         name: { type: 'String' },
         age: {
