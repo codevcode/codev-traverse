@@ -1,4 +1,4 @@
-import { traverse, compose } from '../'
+import { traverse, traverseSync, compose } from '../'
 
 const { strictEqual: is, deepEqual: deep } = assert
 
@@ -55,6 +55,33 @@ describe('traverse', function () {
         }
       )
     })
+  })
+  it('to fill some value sync', function () {
+    const schema = {
+      contents: {
+        age: { autofill: 10 },
+        name: { contents: { first: { autofill: 'Charles' }, last: { } } },
+        phones: { contents: [{ }] },
+      },
+    }
+
+    const middleware = ({ autofill }) => () => next => (value) => {
+      const children = next(value)
+
+      if (autofill && !children) return autofill
+
+      return children
+    }
+
+    const val = traverseSync(schema)(middleware)()()
+    deep(
+      val,
+      {
+        age: 10,
+        name: { first: 'Charles', last: undefined },
+        phones: [],
+      }
+    )
   })
 
   it('receive context, resolve revised value', function () {

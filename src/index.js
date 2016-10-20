@@ -1,5 +1,25 @@
-const traverse = schema => middleware => ctx => (value) => {
-  function makeNext (keys, schemas) {
+const makeTraverse = (traverseStrategy) => {
+  const traverse = schema => middleware => ctx => (value) => {
+    const makeNext = traverseStrategy(traverse, middleware, ctx)
+
+    const { contents } = schema
+    let next
+    if (Array.isArray(contents)) {
+      next = makeNext((value || []).map((v, i) => i), contents)
+    } else if (typeof contents === 'object') {
+      next = makeNext(Object.keys(contents), contents)
+    } else {
+      next = v => v
+    }
+
+    return middleware(schema)(ctx)(next)(value)
+  }
+
+  return traverse
+}
+
+function asyncTraverse (traverse, middleware, ctx) {
+  return function makeNext (keys, schemas) {
     return (input) => {
       let fallback = null
       return Promise.all(keys.map((key) => {
@@ -13,19 +33,24 @@ const traverse = schema => middleware => ctx => (value) => {
       })
     }
   }
-
-  const { contents } = schema
-  let next
-  if (Array.isArray(contents)) {
-    next = makeNext((value || []).map((v, i) => i), contents)
-  } else if (typeof contents === 'object') {
-    next = makeNext(Object.keys(contents), contents)
-  } else {
-    next = v => v
-  }
-
-  return middleware(schema)(ctx)(next)(value)
 }
+function syncTraverse (traverse, middleware, ctx) {
+  return function makeNext (keys, schemas) {
+    return (input) => {
+      let fallback = null
+      const output = Array.isArray(schemas) ? [] : {}
+      keys.forEach((key) => {
+        const sch = schemas[key] || fallback
+        fallback = sch
+        output[key] = traverse(sch)(middleware)(ctx)(input && input[key])
+      })
+      return output
+    }
+  }
+}
+
+const traverse = makeTraverse(asyncTraverse)
+const traverseSync = makeTraverse(syncTraverse)
 
 const compose = middlewares => schema => ctx => next => middlewares
     .map((m, i, a) => a[a.length - i - 1]) // reverse
@@ -33,4 +58,5 @@ const compose = middlewares => schema => ctx => next => middlewares
 
 
 exports.traverse = traverse
+exports.traverseSync = traverseSync
 exports.compose = compose
