@@ -23,9 +23,9 @@ function asyncTraverse (traverse, middleware, ctx) {
     return (input) => {
       let fallback = null
       return Promise.all(keys.map((key) => {
-        const sch = schemas[key] || fallback
-        fallback = sch
-        return traverse(sch)(middleware)(ctx)(input && input[key])
+        const schema = schemas[key] || fallback
+        fallback = schema
+        return traverse(schema)(middleware)(ctx)(input && input[key])
       })).then((values) => {
         const output = Array.isArray(schemas) ? [] : {}
         values.forEach((v, i) => (output[keys[i]] = v))
@@ -40,9 +40,9 @@ function syncTraverse (traverse, middleware, ctx) {
       let fallback = null
       const output = Array.isArray(schemas) ? [] : {}
       keys.forEach((key) => {
-        const sch = schemas[key] || fallback
-        fallback = sch
-        output[key] = traverse(sch)(middleware)(ctx)(input && input[key])
+        const schema = schemas[key] || fallback
+        fallback = schema
+        output[key] = traverse(schema)(middleware)(ctx)(input && input[key])
       })
       return output
     }
