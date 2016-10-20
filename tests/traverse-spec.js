@@ -1,8 +1,8 @@
-import traverse, { compose } from '../'
+import { traverse, compose } from '../'
 
 const { strictEqual: is, deepEqual: deep } = assert
 
-describe.only('traverseValue', function () {
+describe('traverseValue', function () {
   it('is a function', function () {
     is(typeof traverse, 'function')
   })

@@ -32,6 +32,5 @@ const compose = middlewares => schema => ctx => next => middlewares
     .reduce((nextHandler, mid) => mid(schema)(ctx)(nextHandler), next)
 
 
-exports.default = traverse
 exports.traverse = traverse
 exports.compose = compose
