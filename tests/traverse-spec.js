@@ -1,4 +1,4 @@
-import { traverse, traverseSync, compose } from '../'
+import { traverse, compose } from '../'
 
 const { strictEqual: is, deepEqual: deep } = assert
 
@@ -73,7 +73,7 @@ describe('traverse', function () {
       return children
     }
 
-    const val = traverseSync(schema)(middleware)()()
+    const val = traverse(schema)(middleware)()()
     deep(
       val,
       {
@@ -107,7 +107,7 @@ describe('traverse', function () {
     }
 
     deep(
-      traverseSync(schema)(middleware)()(value),
+      traverse(schema)(middleware)()(value),
       {
         nums: [1, 3, 5],
       }
@@ -139,7 +139,7 @@ describe('traverse', function () {
         }
       }
 
-      return traverseSync(s)(middleware(appendFunc))()()
+      return traverse(s)(middleware(appendFunc))()()
     }
 
     deep(

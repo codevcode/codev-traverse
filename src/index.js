@@ -1,58 +1,48 @@
-const makeTraverse = (traverseStrategy) => {
-  const traverse = schema => middleware => ctx => (value) => {
-    const makeNext = traverseStrategy(traverse, middleware, ctx)
+const isPromise = v => (typeof v === 'object' && typeof v.then === 'function')
 
-    const { contents } = schema
-    let next
-    if (Array.isArray(contents)) {
-      next = makeNext(input => (input || []).map((v, i) => i), contents)
-    } else if (typeof contents === 'object') {
-      next = makeNext(() => Object.keys(contents), contents)
-    } else {
-      next = v => v
-    }
+const makeNext = (schemas, goNext) => getKeys => (input) => {
+  const keys = getKeys(input)
 
-    return middleware(schema)(ctx)(next)(value)
+  let fallback = null
+  const results = keys.map((key) => {
+    const schema = schemas[key] || fallback
+    fallback = schema
+    return goNext(schema, input && input[key])
+  })
+
+  const buildOutput = (values) => {
+    const output = Array.isArray(schemas) ? [] : {}
+    values.forEach((v, i) => (output[keys[i]] = v))
+    return output
   }
 
-  return traverse
+  if (results.some(isPromise)) {
+    return Promise.all(results).then(buildOutput)
+  }
+  return buildOutput(results)
 }
 
-function asyncTraverse (traverse, middleware, ctx) {
-  return function makeNext (getKeys, schemas) {
-    return (input) => {
-      let fallback = null
-      const keys = getKeys(input)
-      return Promise.all(keys.map((key) => {
-        const schema = schemas[key] || fallback
-        fallback = schema
-        return traverse(schema)(middleware)(ctx)(input && input[key])
-      })).then((values) => {
-        const output = Array.isArray(schemas) ? [] : {}
-        values.forEach((v, i) => (output[keys[i]] = v))
-        return output
-      })
-    }
-  }
-}
-function syncTraverse (traverse, middleware, ctx) {
-  return function makeNext (getKeys, schemas) {
-    return (input) => {
-      let fallback = null
-      const output = Array.isArray(schemas) ? [] : {}
-      const keys = getKeys(input)
-      keys.forEach((key) => {
-        const schema = schemas[key] || fallback
-        fallback = schema
-        output[key] = traverse(schema)(middleware)(ctx)(input && input[key])
-      })
-      return output
-    }
-  }
-}
+const traverse = schema => middleware => ctx => (value) => {
+  // traverse next with schema and value. wrap middleware and ctx in advance
+  const goNext = (
+    (mid, c) => (sch, val) => traverse(sch)(mid)(c)(val)
+  )(middleware, ctx)
 
-const traverse = makeTraverse(asyncTraverse)
-const traverseSync = makeTraverse(syncTraverse)
+  const { contents } = schema
+
+  const traverseNextKeys = makeNext(contents, goNext)
+
+  let next
+  if (Array.isArray(contents)) {
+    next = traverseNextKeys(input => (input || []).map((v, i) => i))
+  } else if (typeof contents === 'object') {
+    next = traverseNextKeys(() => Object.keys(contents))
+  } else {
+    next = v => v
+  }
+
+  return middleware(schema)(ctx)(next)(value)
+}
 
 const compose = middlewares => schema => ctx => next => middlewares
     .map((m, i, a) => a[a.length - i - 1]) // reverse
@@ -60,5 +50,4 @@ const compose = middlewares => schema => ctx => next => middlewares
 
 
 exports.traverse = traverse
-exports.traverseSync = traverseSync
 exports.compose = compose
