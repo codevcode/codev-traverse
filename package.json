@@ -5,9 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "test": "npm run linter && npm run mocha",
-    "mocha": "env NODE_PATH=./src mocha './tests/**/*spec.js' --opts ./tests/mocha-frontend.opts",
-    "mocha-dev": "env NODE_PATH=./src mocha './tests/**/*spec.js' --opts ./tests/mocha-frontend.opts --watch --bail",
-    "linter": "eslint src tests/**/*spec.js --fix --format tap",
+    "mocha": "env NODE_PATH=./src mocha './src/**/*spec.js' --opts ./tests/mocha-frontend.opts",
+    "mocha-dev": "env NODE_PATH=./src mocha './src/**/*spec.js' --opts ./tests/mocha-frontend.opts --watch --bail",
+    "linter": "eslint src --fix --format tap",
     "build": "babel src --minified --sourceMap -d lib"
   },
   "repository": {
