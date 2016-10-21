@@ -83,6 +83,83 @@ describe('traverse', function () {
       }
     )
   })
+  it('could revise value before next', function () {
+    const schema = {
+      contents: {
+        nums: { contents: [{ }] },
+      },
+    }
+    const value = {
+      nums: [0, 2],
+    }
+
+    const middleware = () => () => next => (val) => {
+      let newVal
+      if (Array.isArray(val)) {
+        newVal = [...val, 4]
+      } else if (typeof val === 'object') {
+        newVal = val
+      } else {
+        newVal = val + 1
+      }
+      const children = next(newVal)
+      return children
+    }
+
+    deep(
+      traverseSync(schema)(middleware)()(value),
+      {
+        nums: [1, 3, 5],
+      }
+    )
+  })
+  it('to append new prop in schema', function () {
+    const schema = {
+      contents: {
+        age: { autofill: 10 },
+        name: { contents: { first: { autofill: 'Charles' }, last: { } } },
+        phones: { contents: [{ }] },
+      },
+    }
+
+    const addNodeType = ({ contents }) => {
+      if (typeof contents === 'object') return { type: 'branch' }
+      return { type: 'leaf' }
+    }
+
+    const appendToSchema = s => (appendFunc) => {
+      const middleware = addFunc => sch => () => next => () => {
+        const children = next(sch.contents)
+        if (!children) return { ...sch, ...addFunc(sch) }
+
+        return {
+          ...sch,
+          ...addFunc(sch),
+          contents: children,
+        }
+      }
+
+      return traverseSync(s)(middleware(appendFunc))()()
+    }
+
+    deep(
+      appendToSchema(schema)(addNodeType),
+      {
+        type: 'branch',
+        contents: {
+          age: { type: 'leaf', autofill: 10 },
+          name: {
+            type: 'branch',
+            contents: {
+              first: { type: 'leaf', autofill: 'Charles' },
+              last: { type: 'leaf' },
+            },
+          },
+          phones: { type: 'branch', contents: [{ type: 'leaf' }] },
+        },
+      }
+    )
+  })
 
   it('receive context, resolve revised value', function () {
     const value = { name: 'Charles', age: 33 }

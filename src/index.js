@@ -5,9 +5,9 @@ const makeTraverse = (traverseStrategy) => {
     const { contents } = schema
     let next
     if (Array.isArray(contents)) {
-      next = makeNext((value || []).map((v, i) => i), contents)
+      next = makeNext(input => (input || []).map((v, i) => i), contents)
     } else if (typeof contents === 'object') {
-      next = makeNext(Object.keys(contents), contents)
+      next = makeNext(() => Object.keys(contents), contents)
     } else {
       next = v => v
     }
@@ -19,9 +19,10 @@ const makeTraverse = (traverseStrategy) => {
 }
 
 function asyncTraverse (traverse, middleware, ctx) {
-  return function makeNext (keys, schemas) {
+  return function makeNext (getKeys, schemas) {
     return (input) => {
       let fallback = null
+      const keys = getKeys(input)
       return Promise.all(keys.map((key) => {
         const schema = schemas[key] || fallback
         fallback = schema
@@ -35,10 +36,11 @@ function asyncTraverse (traverse, middleware, ctx) {
   }
 }
 function syncTraverse (traverse, middleware, ctx) {
-  return function makeNext (keys, schemas) {
+  return function makeNext (getKeys, schemas) {
     return (input) => {
       let fallback = null
       const output = Array.isArray(schemas) ? [] : {}
+      const keys = getKeys(input)
       keys.forEach((key) => {
         const schema = schemas[key] || fallback
         fallback = schema
