@@ -33,14 +33,21 @@ describe('traverse', function () {
       contents: {
         age: { autofill: 10 },
         name: { contents: { first: { autofill: 'Charles' }, last: { } } },
-        phones: { contents: [{ }] },
+        phones: { autofill: ['0910'], contents: [{ }] },
       },
     }
 
     const middleware = ({ autofill }) => () => next => async (value) => {
       const children = await next(value)
 
-      if (autofill && !children) return await autofill
+      if (children === undefined) {
+        if (value === undefined && autofill !== undefined) return autofill
+        return value
+      }
+
+      if (autofill && Object.keys(children).length === 0) {
+        return autofill
+      }
 
       return children
     }
@@ -51,7 +58,7 @@ describe('traverse', function () {
         {
           age: 10,
           name: { first: 'Charles', last: undefined },
-          phones: [],
+          phones: ['0910'],
         }
       )
     })
@@ -61,25 +68,31 @@ describe('traverse', function () {
       contents: {
         age: { autofill: 10 },
         name: { contents: { first: { autofill: 'Charles' }, last: { } } },
-        phones: { contents: [{ }] },
+        phones: { autofill: ['0910'], contents: [{ }] },
       },
     }
 
     const middleware = ({ autofill }) => () => next => (value) => {
       const children = next(value)
 
-      if (autofill && !children) return autofill
+      if (children === undefined) {
+        if (value === undefined && autofill !== undefined) return autofill
+        return value
+      }
+
+      if (autofill && Object.keys(children).length === 0) {
+        return autofill
+      }
 
       return children
     }
 
-    const val = traverse(schema)(middleware)()()
     deep(
-      val,
+      traverse(schema)(middleware)()(),
       {
         age: 10,
         name: { first: 'Charles', last: undefined },
-        phones: [],
+        phones: ['0910'],
       }
     )
   })
@@ -90,6 +103,7 @@ describe('traverse', function () {
       },
     }
     const value = {
+      str: 'Charles',
       nums: [0, 2],
     }
 
@@ -102,8 +116,8 @@ describe('traverse', function () {
       } else {
         newVal = val + 1
       }
-      const children = next(newVal)
-      return children
+
+      return next(newVal) || newVal
     }
 
     deep(
@@ -171,7 +185,7 @@ describe('traverse', function () {
         },
       },
     }
-    const middleware = () => () => next => async val => await next(val)
+    const middleware = () => () => next => async val => await next(val) || val
 
     return traverse(schema)(middleware)()(value).then((val) => {
       deep(val, { name: 'Charles', age: 33 })
@@ -200,7 +214,11 @@ describe('traverse', function () {
 
       return await next(init)
     }
-    const makeAutofill = ({ autofill }) => () => next => async (val) => {
+    const makeAutofill = ({ autofill, contents }) => () => next => async (val) => {
+      if (!contents) {
+        return autofill !== undefined ? autofill : val
+      }
+
       if (!autofill) return await next(val)
 
       await next(val)
@@ -278,7 +296,7 @@ describe('traverse', function () {
 
     const takeHook = ({ hook }) => () => next => async (val) => {
       if (hook) return await hook(val, next)
-      return await next(val)
+      return await next(val) || val
     }
 
     return traverse(schema)(takeHook)()(value).then((val) => {

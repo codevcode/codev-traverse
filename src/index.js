@@ -38,7 +38,7 @@ const traverse = schema => middleware => ctx => (value) => {
   } else if (typeof contents === 'object') {
     next = traverseNextKeys(() => Object.keys(contents))
   } else {
-    next = v => v
+    next = () => {}
   }
 
   return middleware(schema)(ctx)(next)(value)
