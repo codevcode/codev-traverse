@@ -1,4 +1,6 @@
-const isPromise = v => (typeof v === 'object' && typeof v.then === 'function')
+const isPromise = v => (
+  v && typeof v === 'object' && typeof v.then === 'function'
+)
 
 const makeNext = (schemas, goNext) => getKeys => (input) => {
   const keys = getKeys(input)
