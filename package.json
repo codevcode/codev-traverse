@@ -2,11 +2,12 @@
   "name": "codev-traverse",
   "version": "1.0.0",
   "description": "To traverse schema with middlewares",
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "env NODE_PATH=./src mocha './tests/**/*spec.js' --opts ./tests/mocha-frontend.opts",
-    "mocha": "env NODE_PATH=./src mocha './tests/**/*spec.js' --opts ./tests/mocha-frontend.opts --watch --bail",
-    "linter": "eslint index.js tests/**/*spec.js --fix",
+    "test": "npm run linter && npm run mocha",
+    "mocha": "env NODE_PATH=./src mocha './src/**/*spec.js' --opts ./tests/mocha-frontend.opts",
+    "mocha-dev": "env NODE_PATH=./src mocha './src/**/*spec.js' --opts ./tests/mocha-frontend.opts --watch --bail",
+    "linter": "eslint src --fix --format tap",
     "build": "babel src --minified --sourceMap -d lib"
   },
   "repository": {
