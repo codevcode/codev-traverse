@@ -1,38 +1,46 @@
+/* eslint-disable no-param-reassign */
+
 const isPromise = v => (
   v && typeof v === 'object' && typeof v.then === 'function'
 )
 
-const makeNext = (schemas, goNext) => getKeys => (input) => {
+const buildOutput = (values, schemas, keys) => {
+  const output = Array.isArray(schemas) ? [] : {}
+  values.forEach((v, i) => (output[keys[i]] = v))
+  return output
+}
+
+const makeNext = (schemas, ctx, goNext) => getKeys => (input) => {
   const keys = getKeys(input)
 
   let fallback = null
+  const { thisPath } = ctx
   const results = keys.map((key) => {
     const schema = schemas[key] || fallback
     fallback = schema
-    return goNext(schema, input && input[key])
+
+    ctx.thisPath = thisPath.concat(key)
+    ctx.thisKey = key
+    return goNext(schema, ctx, input && input[key])
   })
 
-  const buildOutput = (values) => {
-    const output = Array.isArray(schemas) ? [] : {}
-    values.forEach((v, i) => (output[keys[i]] = v))
-    return output
+  if (results.some(isPromise)) {
+    return Promise.all(results)
+      .then(values => buildOutput(values, schemas, keys))
   }
 
-  if (results.some(isPromise)) {
-    return Promise.all(results).then(buildOutput)
-  }
-  return buildOutput(results)
+  return buildOutput(results, schemas, keys)
 }
 
 const traverse = schema => middleware => ctx => (value) => {
-  // traverse next with schema and value. wrap middleware and ctx in advance
+  // traverse next with schema and value. wrap middleware in advance
   const goNext = (
-    (mid, c) => (sch, val) => traverse(sch)(mid)(c)(val)
-  )(middleware, ctx)
+    mid => (sch, c, val) => traverse(sch)(mid)(c)(val)
+  )(middleware)
 
   const { contents } = schema
 
-  const traverseNextKeys = makeNext(contents, goNext)
+  const traverseNextKeys = makeNext(contents, ctx, goNext)
 
   let next
   if (Array.isArray(contents)) {
@@ -46,10 +54,17 @@ const traverse = schema => middleware => ctx => (value) => {
   return middleware(schema)(ctx)(next)(value)
 }
 
+exports.traverse = schema => middleware => (ctx = { }) => {
+  // init ctx
+  ctx.thisPath = []
+  ctx.thisKey = ''
+  return value => traverse(schema)(middleware)(ctx)(value)
+}
+
+
 const compose = middlewares => schema => ctx => next => middlewares
     .map((m, i, a) => a[a.length - i - 1]) // reverse
     .reduce((nextHandler, mid) => mid(schema)(ctx)(nextHandler), next)
 
 
-exports.traverse = traverse
 exports.compose = compose

@@ -303,4 +303,44 @@ describe('traverse', function () {
       deep(val, { name: 'Charles', age: 18 })
     })
   })
+
+  it('collect value with keyPath', function () {
+    const schema = {
+      contents: {
+        age: { },
+        name: { contents: { first: { }, last: { } } },
+        friends: {
+          contents: [{ contents: { name: { } } }],
+        },
+      },
+    }
+
+    const doc = {
+      age: 35,
+      name: { first: 'Charles', last: 'Hsieh' },
+      friends: [{ name: 'littleshan' }, { name: 'Tzhuan' }, { name: 'Naclsmile' }],
+    }
+
+    const middleware = () => ctx => next => (value) => {
+      if (typeof value === 'string') {
+        const { thisPath, collector } = ctx
+        collector[thisPath.join('.')] = value
+      }
+
+      return next(value) || value
+    }
+
+    const ctx = { collector: { } }
+    traverse(schema)(middleware)(ctx)(doc)
+
+    const expected = {
+      'name.first': 'Charles',
+      'name.last': 'Hsieh',
+      'friends.0.name': 'littleshan',
+      'friends.1.name': 'Tzhuan',
+      'friends.2.name': 'Naclsmile',
+    }
+
+    deep(ctx.collector, expected)
+  })
 })
