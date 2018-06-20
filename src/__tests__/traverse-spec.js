@@ -28,6 +28,42 @@ describe('traverse', function () {
       )
     })
   })
+  it('should skip some value', function () {
+    const schema = {
+      contents: {
+        age: { },
+        name: { contents: { first: { }, last: { } } },
+        phones: { contents: [{ }] },
+      },
+    }
+
+    const middleware = ({ contents }) => () => next => (value) => {
+      if (contents) {
+        if (Array.isArray(value) || typeof value === 'object') {
+          const results = next(value)
+          for (const k of Object.keys(results)) {
+            if (!(k in value)) delete results[k]
+          }
+          return results
+        }
+        return undefined
+      }
+      return value
+    }
+
+    return deep(
+      traverse(schema)(middleware)()({
+        age: undefined,
+        name: { first: 'Charles' },
+        phones: ['0910'],
+      }),
+      {
+        age: undefined,
+        name: { first: 'Charles' },
+        phones: ['0910'],
+      }
+    )
+  })
   it('to fill some value', function () {
     const schema = {
       contents: {
@@ -321,10 +357,10 @@ describe('traverse', function () {
       friends: [{ name: 'littleshan' }, { name: 'Tzhuan' }, { name: 'Naclsmile' }],
     }
 
-    const middleware = () => ctx => next => (value) => {
+    const middleware = () => ctx => next => (value, path) => {
       if (typeof value === 'string') {
-        const { thisPath, collector } = ctx
-        collector[thisPath.join('.')] = value
+        const { collector } = ctx
+        collector[path.join('.')] = value
       }
 
       return next(value) || value

@@ -10,18 +10,14 @@ const buildOutput = (values, schemas, keys) => {
   return output
 }
 
-const makeNext = (schemas, ctx, goNext) => getKeys => (input) => {
+const makeNext = (schemas, ctx, path, goNext) => getKeys => (input) => {
   const keys = getKeys(input)
 
   let fallback = null
-  const { thisPath } = ctx
   const results = keys.map((key) => {
     const schema = schemas[key] || fallback
     fallback = schema
-
-    ctx.thisPath = thisPath.concat(key)
-    ctx.thisKey = key
-    return goNext(schema, ctx, input && input[key])
+    return goNext(schema, ctx, input && input[key], [...path, key])
   })
 
   if (results.some(isPromise)) {
@@ -32,15 +28,13 @@ const makeNext = (schemas, ctx, goNext) => getKeys => (input) => {
   return buildOutput(results, schemas, keys)
 }
 
-const traverse = schema => middleware => ctx => (value) => {
+const traverse = schema => middleware => ctx => (value, path = []) => {
   // traverse next with schema and value. wrap middleware in advance
-  const goNext = (
-    mid => (sch, c, val) => traverse(sch)(mid)(c)(val)
-  )(middleware)
+  const goNext = (sch, c, val, p) => traverse(sch)(middleware)(c)(val, p)
 
   const { contents } = schema
 
-  const traverseNextKeys = makeNext(contents, ctx, goNext)
+  const traverseNextKeys = makeNext(contents, ctx, path, goNext)
 
   let next
   if (Array.isArray(contents)) {
@@ -51,20 +45,13 @@ const traverse = schema => middleware => ctx => (value) => {
     next = () => {}
   }
 
-  return middleware(schema)(ctx)(next)(value)
+  return middleware(schema)(ctx)(next)(value, path)
 }
 
-exports.traverse = schema => middleware => (ctx = { }) => {
-  // init ctx
-  ctx.thisPath = []
-  ctx.thisKey = ''
-  return value => traverse(schema)(middleware)(ctx)(value)
-}
-
+exports.traverse = traverse
 
 const compose = middlewares => schema => ctx => next => middlewares
     .map((m, i, a) => a[a.length - i - 1]) // reverse
     .reduce((nextHandler, mid) => mid(schema)(ctx)(nextHandler), next)
-
 
 exports.compose = compose
