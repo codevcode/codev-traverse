@@ -1,6 +1,6 @@
 {
   "name": "codev-traverse",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "To traverse schema with middlewares",
   "main": "src/index.js",
   "scripts": {
